@@ -4,20 +4,16 @@
 # https://github.com/angristan/openvpn-install
 
 function setupTunTap() {
-	if [ -z $TUN_SETUP ]; then
-		echo "Skipping TUN/TAP setup since you have not enabled it through the use of the TUN_SETUP environment variable"
-	else
-		echo "Setting up TUN/TAP with APT..."
-		# Install/verify requirements
-		apt-get update && \
-		apt-get clean && apt-get -y update && \
-		apt-get install -y locales curl openvpn bridge-utils && \
+	echo "Setting up TUN/TAP with APT..."
+	# Install/verify requirements
+	apt-get update && \
+	apt-get clean && apt-get -y update && \
+	apt-get install -y locales curl openvpn bridge-utils && \
 
-		# Make TUN adapter configuration
-		mkdir -p /dev/net && \
-		mknod /dev/net/tun c 10 200 && \
-		chmod 600 /dev/net/tun
-	fi
+	# Make TUN adapter configuration
+	mkdir -p /dev/net && \
+	mknod /dev/net/tun c 10 200 && \
+	chmod 600 /dev/net/tun	
 }
 
 function isRoot() {
@@ -106,7 +102,12 @@ function initialCheck() {
 	fi
 	if ! tunAvailable; then
 		echo "TUN is not available"
-		exit 1
+		if [ -z $AUTO_INSTALL ]; then	
+			exit 1
+		else
+			# Setup and enable TUN/TAP so this can be run
+			setupTunTap
+		fi
 	fi
 	checkOS
 }
@@ -636,9 +637,6 @@ function installOpenVPN() {
 			PUBLIC_IP=$(curl -4 https://ifconfig.co)
 		fi
 		ENDPOINT=${ENDPOINT:-$PUBLIC_IP}
-
-		# Install and Enable TUN/TAP
-		setupTunTap
 	fi
 
 	# Run setup questions first, and set other variales if auto-install
